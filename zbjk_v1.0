@@ -1,0 +1,139 @@
+%%time
+import numpy as np
+import pandas as pd
+import os
+import glob
+os.chdir('E:\zbjk')
+
+path ="E:/zbjk"
+filenames = glob.glob(path + "/*.csv")
+dfs = []
+for filename in filenames:
+    dfs.append(pd.read_csv(filename,encoding="gbk",skiprows=7,low_memory=False))
+data = pd.concat(dfs, ignore_index=True)
+
+data = data.dropna()
+data = data[~data['开始时间'].str.contains('开始时间')]
+# 定义获取小区名字函数
+def names(a):
+    return(a.split('小区名称=')[1].split(',')[0])
+data['小区'] = data['小区'].map(names)
+# 对空值进行替换0处理
+data.replace({'NIL': 0}, inplace=True)
+# 将数据转换为数字类型
+data = data.apply(pd.to_numeric, errors='ignore')
+# 获取时间数据信息
+start_time=data['开始时间'].unique()[0][11:]
+end_time=str(int(data['开始时间'].unique()[0][11:13])+1)+":00:00"
+# 获取总的指标汇总信息
+data_kpi=data.iloc[:,4:]
+ywl=data_kpi.sum()[0]/1000/1000/1000/8+data_kpi.sum()[1]/1000/1000/1000/8
+user=data_kpi.sum()[2]
+jt=data_kpi.sum()[5]/data_kpi.sum()[4]*data_kpi.sum()[7]/data_kpi.sum()[6]
+dx=(data_kpi.sum()[8]+data_kpi.sum()[9]-data_kpi.sum()[10])/(data_kpi.sum()[11]+data_kpi.sum()[12])
+qh=(data_kpi.sum()[13]+data_kpi.sum()[14]+data_kpi.sum()[15]+data_kpi.sum()[16]-data_kpi.sum()[21]-data_kpi.sum()[22]-data_kpi.sum()[23]-data_kpi.sum()[24])/(data_kpi.sum()[17]+data_kpi.sum()[18]+data_kpi.sum()[19]+data_kpi.sum()[20])
+prb_u=data_kpi.sum()[27]/data_kpi.sum()[28]
+prb_d=data_kpi.sum()[29]/data_kpi.sum()[30]
+jt_volte=data_kpi.sum()[5]/data_kpi.sum()[4]*data_kpi.sum()[32]/data_kpi.sum()[31]
+dh_volte=(data_kpi.sum()[33]+data_kpi.sum()[34]-data_kpi.sum()[37])/(data_kpi.sum()[35]+data_kpi.sum()[36])
+ys=data_kpi.sum()[-1]
+# 创建汇总指标表头信息
+zb = pd.DataFrame(index=[start_time],columns=['业务量','接通率', '掉线率', '切换成功率', '上行利用率', '下行利用率', 'volte接通率', 'Volte掉话率'])
+# 对指标进行汇总呈现
+zb.iloc[0,0]=ywl
+zb.iloc[0,1]=jt
+zb.iloc[0,2]=dx
+zb.iloc[0,3]=qh
+zb.iloc[0,4]=prb_u
+zb.iloc[0,5]=prb_d
+zb.iloc[0,6]=jt_volte
+zb.iloc[0,7]=dh_volte
+zb['接通率']=zb['接通率'].apply(lambda x:format(x,'.2%'))
+zb['掉线率']=zb['掉线率'].apply(lambda x:format(x,'.2%'))
+zb['切换成功率']=zb['切换成功率'].apply(lambda x:format(x,'.2%'))
+zb['上行利用率']=zb['上行利用率'].apply(lambda x:format(x,'.2%'))
+zb['下行利用率']=zb['下行利用率'].apply(lambda x:format(x,'.2%'))
+zb['volte接通率']=zb['volte接通率'].apply(lambda x:format(x,'.2%'))
+zb['Volte掉话率']=zb['Volte掉话率'].apply(lambda x:format(x,'.2%'))
+# 获取top小区数据
+data=data.pivot_table(index='小区',aggfunc={'小区内的最大用户数 (无)':np.max,'RRC连接请求次数（包括重发） (无)':np.sum,'RRC连接建立完成次数 (无)':np.sum,'E-RAB建立尝试总次数 (无)':np.sum,'E-RAB建立成功总次数 (无)':np.sum,'eNodeB发起的S1 RESET导致的UE Context释放次数 (无)':np.sum,'UE Context异常释放次数 (无)':np.sum,'eNodeB等待初始上下文建立请求超时触发的UE Context释放次数 (无)':np.sum,'UE Context建立成功总次数 (无)':np.sum,'小区遗留UE Context个数 (无)':np.sum,'eNodeB间同频切换出成功次数 (无)':np.sum,'eNodeB间异频切换出成功次数 (无)':np.sum,'eNodeB内同频切换出成功次数 (无)':np.sum,'eNodeB内异频切换出成功次数 (无)':np.sum,'eNodeB间同频切换出尝试次数 (无)':np.sum,'eNodeB间异频切换出尝试次数 (无)':np.sum,'eNodeB内同频切换出执行次数 (无)':np.sum,'eNodeB内异频切换出执行次数 (无)':np.sum,'通过重建回源小区的eNodeB内异频切换出执行成功次数 (无)':np.sum,'通过重建回源小区的eNodeB内同频切换出执行成功次数 (无)':np.sum,'通过重建回源小区的eNodeB间异频切换出执行成功次数 (无)':np.sum,'通过重建回源小区的eNodeB间同频切换出执行成功次数 (无)':np.sum,'PRB利用率下行 (无)':np.mean,'PRB利用率上行 (无)':np.mean,'QCI为1的业务E-RAB建立尝试次数 (无)':np.sum,'QCI为1的业务E-RAB建立成功次数 (无)':np.sum,'eNodeB触发的QCI为1的业务E-RAB异常释放次数 (无)':np.sum,'切换出QCI为1的E-RAB异常释放次数 (无)':np.sum,'QCI为1的遗留E-RAB个数 (无)':np.sum,'QCI为1的切换入E-RAB成功建立次数 (无)':np.sum,'eNodeB发起的S1 RESET导致的QCI为1的E-RAB异常释放次数 (无)':np.sum,'资源分配失败而导致RRC连接建立失败次数 (无)':np.sum})
+data=data.iloc[:,[25,9,8,0,1,17,11,18,10,26,21,23,12,14,20,22,13,15,29,28,31,30,3,2,4,5,19,24,7,6,16,27]]
+data['RRC连接失败次数'] = data['RRC连接请求次数（包括重发） (无)']-data['RRC连接建立完成次数 (无)']
+data['E-RAB失败次数'] = data['E-RAB建立尝试总次数 (无)']-data['E-RAB建立成功总次数 (无)']
+data['掉线次数'] = data['eNodeB发起的S1 RESET导致的UE Context释放次数 (无)']+data['UE Context异常释放次数 (无)']-data['eNodeB等待初始上下文建立请求超时触发的UE Context释放次数 (无)']
+data['切换失败'] = data['eNodeB间同频切换出尝试次数 (无)']+data['eNodeB间异频切换出尝试次数 (无)']+data['eNodeB内同频切换出执行次数 (无)']+data['eNodeB内异频切换出执行次数 (无)']-data['eNodeB间同频切换出成功次数 (无)']-data['eNodeB间异频切换出成功次数 (无)']-data['eNodeB内同频切换出成功次数 (无)']-data['eNodeB内异频切换出成功次数 (无)']+data['通过重建回源小区的eNodeB内异频切换出执行成功次数 (无)']+data['通过重建回源小区的eNodeB内同频切换出执行成功次数 (无)']+data['通过重建回源小区的eNodeB间异频切换出执行成功次数 (无)']+data['通过重建回源小区的eNodeB间同频切换出执行成功次数 (无)']
+data['E-RAB失败次数(QCI=1)'] = data['QCI为1的业务E-RAB建立尝试次数 (无)']-data['QCI为1的业务E-RAB建立成功次数 (无)']
+data['Volte掉话次数'] = data['eNodeB触发的QCI为1的业务E-RAB异常释放次数 (无)']+data['切换出QCI为1的E-RAB异常释放次数 (无)']-data['eNodeB发起的S1 RESET导致的QCI为1的E-RAB异常释放次数 (无)']
+data['RRC连接失败次数'] = data['RRC连接失败次数'].astype(int)
+data['E-RAB失败次数']=data['E-RAB失败次数'].astype(int)
+data['掉线次数']=data['掉线次数'].astype(int)
+data['切换失败']=data['切换失败'].astype(int)
+data['资源分配失败而导致RRC连接建立失败次数 (无)'] = data['资源分配失败而导致RRC连接建立失败次数 (无)'].astype(int)
+data['PRB利用率上行 (无)']=data['PRB利用率上行 (无)'].astype(float)
+data['PRB利用率下行 (无)']=data['PRB利用率下行 (无)'].astype(float)
+data['小区内的最大用户数 (无)']=data['小区内的最大用户数 (无)'].astype(int)
+data['E-RAB失败次数(QCI=1)']=data['E-RAB失败次数(QCI=1)'].astype(int)
+data['Volte掉话次数'] = data['Volte掉话次数'].astype(int)
+data=data[[ 'RRC连接失败次数', 'E-RAB失败次数', '掉线次数', '切换失败','小区内的最大用户数 (无)', '资源分配失败而导致RRC连接建立失败次数 (无)', 'PRB利用率上行 (无)','PRB利用率下行 (无)','E-RAB失败次数(QCI=1)', 'Volte掉话次数']]
+
+a = data['RRC连接失败次数'].nlargest(18, keep='all')
+b = data['E-RAB失败次数'].nlargest(18, keep='all')
+c = data['掉线次数'].nlargest(18, keep='all')
+d = data['切换失败'].nlargest(18, keep='all')
+e = data['小区内的最大用户数 (无)'].nlargest(18, keep='all')
+f = data['资源分配失败而导致RRC连接建立失败次数 (无)'].nlargest(18, keep='all')
+g = data['PRB利用率上行 (无)'].nlargest(18, keep='all')
+h = data['PRB利用率下行 (无)'].nlargest(18, keep='all')
+i = data['E-RAB失败次数(QCI=1)'].nlargest(18, keep='all')
+j = data['Volte掉话次数'].nlargest(18, keep='all')
+top = pd.DataFrame(index=['Top1', 'Top2', 'Top3', 'Top4', 'Top5', 'Top6', 'Top7', 'Top8', 'Top9', 'Top10', 'Top11', 'Top12', 'Top13', 'Top14', 'Top15', 'Top16', 'Top17', 'Top18', 'Top1_Names', 'Top2_Names', 'Top3_Names', 'Top4_Names', 'Top5_Names', 'Top6_Names', 'Top7_Names', 'Top8_Names', 'Top9_Names', 'Top10_Names', 'Top11_Names', 'Top12_Names', 'Top13_Names', 'Top14_Names', 'Top15_Names', 'Top16_Names', 'Top17_Names', 'Top18_Names'], 
+                   columns=['RRC失败', 'E-RAB失败', '掉线', '切换失败', '最大用户数', '拥塞', '上行利用率', '下行利用率', 'E-RAB失败(QCI=1)', 'Volte掉话', ])
+# # RRC展示
+for n1 in range(0,18):
+    top.iloc[n1, 0] = a[n1]
+    top.iloc[n1+18, 0] = a.index[n1]
+# # E-RAB展示
+for n2 in range(0,18):
+    top.iloc[n2, 1] = b[n2]
+    top.iloc[n2+18, 1] = b.index[n2]
+# # 掉线    
+for n3 in range(0,18):
+    top.iloc[n3, 2] = c[n3]
+    top.iloc[n3+18, 2] = c.index[n3]
+# # 切换失败
+for n4 in range(0,18):
+    top.iloc[n4, 3] = d[n4]
+    top.iloc[n4+18, 3] = d.index[n4]
+# #最大用户数    
+for n5 in range(0,18):
+    top.iloc[n5, 4] = e[n5]
+    top.iloc[n5+18, 4] = e.index[n5]
+# #拥塞    
+for n6 in range(0,18):
+    top.iloc[n6, 5] = f[n6]
+    top.iloc[n6+18, 5] = f.index[n6]
+# #上行利用率    
+for n7 in range(0,18):
+    top.iloc[n7, 6] = g[n7]
+    top.iloc[n7+18, 6] = g.index[n7]
+# #下行利用率    
+for n8 in range(0,18):
+    top.iloc[n8, 7] = h[n8]
+    top.iloc[n8+18, 7] = h.index[n8]
+# #E-RABS失败（qci=1）展示    
+for n9 in range(0,18):
+    top.iloc[n9, 8] = i[n9]
+    top.iloc[n9+18, 8] = i.index[n9]
+# # volte掉话    
+for n10 in range(0,18):
+    top.iloc[n10, 9] = j[n10]
+    top.iloc[n10+18, 9] = j.index[n10]
+# 将top小区信息输出到剪贴板
+top.to_clipboard()
+user=int(user)
+ys=int(ys)
+# 打印输出指标汇总信息
+s=f'{start_time}-{end_time}全网4G网络监控\n1、【整体概述】:全网4G区域网络性能良好;保障区域内总用户数{user},单小区最大用户数{e[0]}个({e.index[0]}),总业务量{ywl:.2f}GB.\n2、【指标情况】:保障范围内4G站点各项kpi指标良好,无线接通率{jt:.2%},掉线率{dx:.2%},拥塞次数{ys},切换成功率{qh:.2%},上行利用率{prb_u:.2%},下行利用率{prb_d:.2%},volt接通率{jt_volte:.2%},volte掉话率{dh_volte:.2%}.'
+print(s)
+# 展示指标汇总信息和top小区信息
+display(zb,top)
